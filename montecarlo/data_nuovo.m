@@ -1,0 +1,640 @@
+% Dati
+% Data
+function [ ... % parametri geometrici
+    R, H, n_sez, ...
+    ... % parametri microstrutturali
+    epsilon_0, nu, sigma, ...
+    ... % dati sulle incisure
+    n_inc, inc, ...
+    ... % parametri di discretizzazione
+    taglia, tol_R, tol_angle, ...
+    n_ref_cyto, n_ref_id, ...
+    ... % dati relativi all'integrazione nel tempo
+    theta, alpha, tol_fix, norma_inf, ...
+    t_fin, n_step_t, t_step, time, ...
+    ... % flag di disegno e controllo
+    plot_mesh, plot_num, inspect, ...
+    ... % dati iniziali di tentativo per lo steady-state
+    u_tent, v_tent, tol_stat, ...
+    ... % modello 
+    flag_model, flag_Ca_clamp, ...
+    ... % dati sulla R*
+    cc_R_st, D_R_st, ...
+    n_step_R, ...
+    RK_tot, Rec_tot, M_bind, K_bind, ...
+    Ca_val, lambda, lambda_dark, mu, ...
+    ... % dati sulla T*
+    cc_T_st, D_T_st, nu_RT, k_TE_vol, T_tot, ...
+    ... % dati sulla E*
+    cc_E_st, D_E_st, PDE, ...
+    tau_E_dark, tau_E_adapt, Ca_adapt, k_tau_E2dark, k_tau_E2adapt, ...
+    ... % coefficienti di diffusione nel cytosol
+    cc_u, kk_u, cc_v, kk_v, ...
+    ... % deplition del cGMP: attività catalitica della E*
+    k_hyd, k_st, ...
+    ... % produzione di cGMP: dati sulla ciclasi
+    alpha_max, alpha_min, m_cyc, k_cyc, ...
+    ... % dati comuni sui canali del Ca2+
+    B_ca, F, ...
+    ... % dati sul canale cGMP-operato
+    j_cg_max, f_ca, m_cg, K_cg_min, K_cg_max, K_CaM, n_CaM, ...
+    ... % dati sullo scambiatore
+    j_ex_sat, K_ex, ...
+    ... % dati sull'illuminazione di background e flash aggiuntivo
+    I_bkgr_ss, I_bkgr_history, Phi_flash_history]=data
+
+
+% PARAMETRI GEOMETRICI
+% GEOMETRICAL PARAMETERS
+
+% raggio del bastoncello
+% rod radius
+R=0.7-0.015; % [\mu m]
+% altezza del bastoncello
+% rod height
+H=23.6; % [\mu m]
+
+% numero di sezioni trasversali nella discretizzazione
+% spaziatura costante
+% number of cross sections to be used in the discretization
+% linear spacing
+n_sez=15;
+% n_sez=31;
+
+
+% PARAMETRI MICROSTRUTTURALI
+% MICROSTRUCTURAL PARAMETERS
+
+% spessore dei dischi
+% disc thickness
+epsilon_0=14.5e-3; %  [\mu m]
+
+% rapporto fra spessore degli interdischi e spessore dei dischi
+% ratio between interdisc and disc thickness 
+nu=14.5/14.5; % []
+
+% rapporto fra spessore dell'outer shell e spessore dei dischi
+% ratio between outer-shell and disc thickness
+sigma=15/14.5; % []
+
+
+% DATI SULLE INCISURE
+% DATA ON INCISURES
+
+% Numero di incisure
+% number of incisures
+% n_inc=0;
+% inc=zeros(3,0);
+
+% I dati sulle incisure sono allocati nella matrice inc, con n_inc colonne
+% ogni colonna ha tre componenti, che sono la lunghezza dell'incisura; la posizione angolare; l'apertura
+% la lunghezza di ciascuna incisura deve essre minore del raggio
+% le anomalie a cui sono posizionate le incisure devono essere tutte positive 
+% e crescenti in senso antiorario al crescere dell'indice di incisura (anche oltre 2*pi se necessario)
+% se sono presenti solo due incisure, l'angolo dalla prima alla seconda deve essere minore del piatto
+% l'angolo di apertura (beanza) delle incisure, assunte essere settori circolari, è misurato rispetto al verice dell'incisura
+% the data on incisures are in the matrix inc, with n_inc colums
+% each column has three compoments, referring to the current incisure: length; angular position; angular amplitude
+% the length of each incisure must be less than the radius
+% the angles must be all positive and increasing in counterclockwise direction (may be greater that 2*pi if necessary)
+% if there are only two incisures, the angle from the first one to the second one must be less than pi
+% the angular amplitude of each incisure, regarded as a circular sector, is measured with respect to its vertex
+% inc=zeros(3,0);
+% inc=[ [4.5; 0; pi/50] ]; % [ \mu m; rad; rad] on each column
+% inc=[ [3; 0*pi; pi/500],[3; 1/5*pi; pi/500]]; % [ \mu m; rad; rad] on each column
+% inc=[ [3.5; 40/180*pi; pi/50], [4; 80/180*pi; pi/50], [5; 170/180*pi; pi/50] , [3; 290/180*pi; pi/50] ]; % [ \mu m; rad; rad] on each column
+
+
+% % % % %% GENERATES EQUALLY SPACED INCISURES (comment if you want to put 0 incisures)
+% % % n_inc=23;
+% % % % width of a single incisure
+% % % l_b=15e-3;
+% % % % total area of incisures
+% % % A_tot=0.80;
+% % % % length of a single incisure
+% % % l_r=2*A_tot/(n_inc*l_b);
+% % % % angle of a single incisure
+% % % theta_inc=l_b/l_r;
+% % % % generate the variable inc
+% % % inc=[l_r*ones(1,n_inc); 0:2*pi/n_inc:2*pi*(1-1/n_inc); theta_inc*ones(1,n_inc)];
+% %% GENERATES EQUALLY SPACED INCISURES (comment if you want to put 0 incisures)
+% MOUSE
+n_inc=1;
+% width of a single incisure
+l_b=0.2593;
+% total area of incisures
+% A_tot=0.80;
+% length of a single incisure
+l_r=0.3111;
+% angle of a single incisure
+theta_inc=l_b/l_r;
+% generate the variable inc
+inc=[l_r*ones(1,n_inc); 0:2*pi/n_inc:2*pi*(1-1/n_inc); theta_inc*ones(1,n_inc)];
+
+
+% PARAMETRI DI DISCRETIZZAZIONE
+% DISCRETIZATION PARAMETERS
+
+% taglia degli elementi prodotti da initmesh (prima di invocare refinemesh)
+% size of the elements generated by initmesh (before invoking refinemesh)
+taglia=R/4; % [\mu m]
+
+% tolleranza lineare dei setacci nella ricerca dei nodi
+% due punti sono considerati coincidenti quando sono a distanza minore di tol_R
+% linear tolerance of the grid for searching nodes
+% two nodes are assumed to be the same if their distance is less than tol_R
+tol_R=taglia/1000; % [\mu m]
+
+% tolleranza angolare dei setacci nella ricerca dei nodi
+% angular tolerance of the grid for searching nodes
+tol_angle=2*pi/1000; % [rad]
+
+% numero di raffittimenti per la mesh del problema omogeneizzato (numero di volte in cui è chiamato refinemesh)
+% number of refinements of the mesh for the homogenized problem (numer of times refinemesh is invoked)
+n_ref_cyto=0;
+
+% numero di raffittimenti per la mesh del di diffusione sul disco inciso (numero di volte in cui è chiamato refinemesh)
+% deve essere maggiore o uguale a n_ref_cyto
+% number of refinements of the mesh for the diffusion problem on the incised disc
+% it must be greater than or equal to n_ref_cyto
+n_ref_id=1;
+
+
+
+% DATI RELATIVI ALLA INTEGRAZIONE NEL TEMPO
+% DATA FOR TIME INTEGRATION
+
+% parametro theta nell'integrazione temporale
+% theta-parameter of the theta-method
+theta=0.5; % []
+
+% parametro di rilassamento nell'iterazione sul punto fisso: deve essere 0<alpha<=1 (alpha=1 per eliminare il rilassamento)
+% relaxation parameter in the fixed-point iteration: it must be 0<alpha<=1   (alpha=1 means no relaxation)
+% alpha=1; % []
+alpha=1; % []
+
+% errore relativo sul punto fisso nel prolema homogeneizzato
+% relative error on the fixed-point iteration of the homogenized problem 
+tol_fix=1e-5; % []
+
+% tipo di norma utilizzata per la convergenza (L^\infty (se true), oppure L^1 (se false))
+% type of norm used to estimate convergence: (L^\infty (if true), or L^1 (if false))
+norma_inf=false;
+
+% durata della simulazione
+% time horizon
+% t_fin=1.5; % [s]
+t_fin=1; % [s]
+% t_fin=600; % [s]
+% t_fin=100; % [s]
+% t_fin=0.5; % [s]
+% t_fin=0.25; % [s]
+
+% numero di passi di integrazione
+% number of integration steps
+% n_step_t=2400;
+% n_step_t=100000;
+% n_step_t=600;
+% n_step_t=300;
+n_step_t=100;
+% n_step_t=10;
+
+% passo di integrazione temporale
+t_step=t_fin/n_step_t;
+% istanti di calcolo
+time=(0:n_step_t)*t_step;
+
+
+% FLAG DI DISEGNO E CONTROLLO
+% PLOT AND FLOW-CONTROL OPTIONS
+
+% flag per il disegno della mesh
+% plotting meshes if true
+plot_mesh=false;
+
+% flag per il disegno dei numeri sulla mesh
+% drawing nodal and element number on meshes if true
+plot_num=false;
+
+% flag per l'esecuzione senza pause (se inspect=true, l'utente ha maggior controllo del flusso)
+% continuous execution if false
+% requesting to press keys during execution if =true, for the sake of controlling outputs
+inspect=false;
+
+% DATI INIZIALI DI TENTATIVO PER LO STEADY-STATE
+% INITIAL VALUES TO BE USED IN SEARCHING FOR THE STEADY-STATE
+
+% valore iniziale di tentativo del cGMP
+% trial cGMP value
+u_tent=4;  % [\mu M]
+
+% valore iniziale di tentativo  del Ca2+ 
+% trial Ca2+ value
+v_tent=0.5; % [\mu M]
+
+% tolleranza sui flussi da rendere nulli per calcolare lo stato stazionario
+% maximum unbalancing of fluxes allowed in the steady-state 
+tol_stat=1e-8; % [(\mu m) (\mu M)/s = 10^(-9) mole/(m^2 s)]
+
+
+% SCELTA DEL MODELLO NEL CITOSOL
+% flag_model=1 modello 3D omogeneizzato, flag_model=2 modello well
+% stirred con diffusione lungo z, flag_model=3 modello ccompletamente
+% well stirred
+flag_model=3;
+
+% flag_Ca_clamp=false: modello standard; flag_model=true modello con clamp del calcio
+% flag_Ca_clamp=false: standard model; flag_model=true: Calcium clamp model
+flag_Ca_clamp=false;
+
+
+
+% DATI SULLA R*
+% DATA ON R*
+
+% capacità areale della R*
+% areal capacity of R*
+cc_R_st=1; % []
+
+% coefficiente di diffusione della R*
+% diffusion coefficient of R*
+% D_R_st=0.7;   % [(\mu m)^2/s]
+D_R_st=0;   % [(\mu m)^2/s]
+
+% numero di passi di shutoff della R*
+% pari al numero di siti di fosforilazione aumentato di 1, 
+% perché il primo stato è quello non fosforilato
+% number of steps required for a complete shut off of R*
+% it is equal to the number of phosforilation sites plus 1
+% since the first state is unphosphorilated
+% n_step_R=1;
+n_step_R=7;
+
+% lambda_i, i=1..n_step_R: tassi di decadimento da R_i to R_{i+1} (per azione di RK)
+% sono funzioni del Ca2+ date per punti
+% le ascisse sono le concentrazioni di Ca2+, passate nel vettore Ca_val
+% i valori di lambda_i sono nella matrice lambda(:,n_step_R): 
+% una colonna per ogni lambda_i
+% costante di dr. Shen, da ri-fittare dato che ora le lambda_i dipendono da Ca2+
+% lambda_i, i=1..n_step_R: transition rates from R_i to R_{i+1} (due to RK)
+% are function of Ca2+ sampled on some Ca2+ values
+% the abscissa Ca2+ values are given in the vector Ca_val
+% the sampled values of lambda_i are in the matrix lambda(:,n_step_R): 
+% one column for each lambda_i
+% dr. Shen's constant, to be re-fitted, since now lambda_i does depend on Ca2+
+lambda_0=6; % [s^{-1}]
+% valori delle lambda calcolati dal dr. Shen
+% dr. Shen's values of lambda_i
+lambda_dark=((n_step_R-1):-1:0)'*lambda_0;
+
+% le lambda_i per differenti concentrazioni di Ca2+ sono riscalate, usando il
+% fattore RK/RK_tot nell'equazione A12 of NLP, J.Gen.Physiol. 116 (2000) 795--824
+% di seguito sono riportati i parametri che intervengono in tale equazione
+% the lambda_i's are rescaled, for each Ca2+ concentration, using the
+% factor RK/RK_tot as in equation A12 of NLP, J.Gen.Physiol. 116 (2000) 795--824
+% the parameters entering that equation are reported in the following
+% concentrazione totale di RK
+% total RK concentration
+RK_tot=7;  % [\mu M]
+% concentrazione totale di recoverina
+% total Recoverin concentration
+Rec_tot=34;  % [\mu M]
+% concentrazione della membrana
+% membrane concentration
+M_bind=6000;  % [\mu M]
+% costanti di dissociazione per RK e Rec
+% dissociation constants for RK and Rec
+K_bind=zeros(4,1);
+% K_bind(1)^2: costante di dissociazione per Rec+2Ca
+% K_bind(1)^2: dissociation constant for Rec+2Ca
+K_bind(1)=4.5;  % [\mu M]
+% K_bind(2): costante di dissociazione per Rec.2Ca+M
+% K_bind(2): dissociation constant for Rec.2Ca+M
+K_bind(2)=230;  % [\mu M]
+% K_bind(3)=K_bind(4): costante di dissociazione per Rec.2Ca.M+RK
+% K_bind(3)=K_bind(4): dissociation constant for Rec.2Ca.M+RK
+K_bind(3)=3.4;  % [\mu M]
+K_bind(4)=3.4;  % [\mu M]
+
+% numero di punti di campionamento
+% number of sampling points (Ca2+ concentrations)
+n_p=64;
+% punti di campionamento: egualmente spaziati da 0 a 1.5*v_tent
+% sampleing points: equally spaced in 0 and 1.5*v_tent
+Ca_val=(0:n_p-1)/n_p*(1.5*v_tent);
+% corregge il primo valore, per non avere esattamente zero
+Ca_val(1)=v_tent/1e5;
+% fattori moltiplicativi delle lambda_i, per i vari valori di Ca2+
+% multiplicative factors for lambda_i's, for different Ca2+ values
+lambda=zeros(n_step_R,n_p);
+for i=1:n_p
+    [RK_rel]=fatt_RK(Ca_val(i), RK_tot, Rec_tot, M_bind, K_bind);
+    lambda(:,i)=RK_rel*lambda_dark;
+end
+% % % % elimina il feedback del Ca2+ su Rk ******************
+% % % Ca_val
+% % % lambda
+% % % lambda_dark
+% % % lambda=4.2*repmat((n_step_R-1):-1:0,n_p,1)/(n_step_R-1)
+% % % % pause  %%%********************************************
+
+% mu_i: tasso di spegnimento di R_i, dovuto al legame con Arr
+% mu_i: rate of transition from R_i to an inactive state (due to Arr binding)
+mu=[0; 0; 1/3; 2/3; 1; 1; 1];
+% si assicura che mu sia lungo n_step_R, e non di più
+% assure that length(mu)=n_step_R
+if length(mu)~=n_step_R
+    error('the length of mu must be equal to n_step_R')
+end
+% tasso massimo (secondo dr. Shen)
+% maximum rate (after dr. Shen)
+mu_max=110; % [s^{-1}]
+mu=mu*mu_max;
+
+
+% DATI SULLA T*
+% DATA ON T*
+
+% capacità areale della T*
+% areal capacity of T*
+cc_T_st=1; % []
+
+% coefficiente di diffusione della T*
+% diffusion coefficient of T*
+D_T_st=2.2+1.5;   % [(\mu m)^2/s]
+% D_T_st=1.5+0.7;%+1.5;  
+% D_T_st=1.5;%+1.5;
+
+% Coefficiente nu_{RT}, pari al tasso di produzione di T* per ogni R*
+% si tratta di un vettore colonna lungo n_step_R, in quanto ad ogni passo di
+% fosforilazione di R* corrisponde un diverso tasso di produzione di T*
+% rate of production of T* per R* per second
+% this is a column vector with n_step_R components: indeed, at each
+% phosphorylation level, the R* has a different catalytic activity
+% k1 in shraiman paper
+% nu_RT=120*[1; 1; 1]; % [s^{-1}]
+% constate di decadimento esponenziale
+% exponenzial decay constant
+k_v=0.41; % []
+nu_RT_max=225;  % [s^{-1}]
+nu_RT=nu_RT_max*exp(-k_v*(0:n_step_R-1)');
+if size(nu_RT,1)~=n_step_R
+    error('nu_RT must have n_step_R rows')
+end
+
+% tasso di produzione di T* per ogni T* per densità unitaria (#/\mu m^2) di subunità di E spenta
+% production rate of E* per each T* per unit density (#/\mu m^2)of basal E subunits
+% k2 in shraiman paper
+% costante catalitica che moltiplica la densità superficiale di *subunità* di E spente
+% catalitic constant multiplying the surface density of basal E *subuits*
+k_TE=1; % [\mu m^2/s]
+% costante catalitica che moltiplica la densità volumica di *subunità* di E spente
+% catalitic constant multiplying the volumin density of basal E *subuits*
+k_TE_vol=k_TE*(1/2*nu*epsilon_0); % [\mu m^3/s]
+
+% Densità di T totali
+% Density of total T
+% surface density
+% (Hamm and Bownds, Biochemistry. 25:4512-4523, 1986)
+T_tot_s=2500;  % [molecole/(\mu m)^2]
+% volumic density
+T_tot=T_tot_s/(1/2*nu*epsilon_0); % [molecole/(\mu m)^3]
+
+
+% DATI SULLA E*
+% DATA ON E*
+
+% capacità areale della E*
+% areal capacity of E*
+cc_E_st=1; % []
+
+% coefficiente di diffusione della E*
+% diffusion coefficient of E*
+% D_E_st=0.7+1.5+0.8;   % [(\mu m)^2/s]
+D_E_st=1.2;%+0.5;   % [(\mu m)^2/s]
+% D_E_st=5;  % [(\mu m)^2/s]
+% D_E_st=10;  % [(\mu m)^2/s]
+
+% tempo di vita medio di E* in condizioni adattate al buio
+% dark-adapted mean lifetime of E*
+% tau_E_dark=0.246; % [s]
+tau_E_dark=1/4.9; % [s]    %**********************per confronto con giovanni
+% tempo di vita medio di E* in condizioni adattate alla massima
+% illumunazione
+% maximum-light-adapted mean lifetime of E*
+% tau_E_adapt=2/3*tau_E_dark; % [s]
+tau_E_adapt=tau_E_dark; % [s]
+% tau_E_adapt=1/6; % [s]    %**********************per confronto con giovanni
+% concentrazione di Ca2+ corrispondenti alla massima illuminazione
+% concentration od Ca2+ under most intense light
+Ca_adapt=0.023; % [\mu M]
+% tasso con cui tau_E tende verso tau_E_dark, al buio
+% rate at which tau_E converges to tau_E_dark, at dark
+k_tau_E2dark=0.013; % [s^{-1}]
+% tasso con cui tau_E tende verso tau_E_adapt, alla luce
+% rate at which tau_E converges to tau_E_adapt, at light
+k_tau_E2adapt=0.020; % [s^{-1}]
+
+% Densità superficiale di PDE totali
+% nota: la densità di subunità è il doppio di PDE
+% superficial density of total PDE
+% note: subunit density is 2*PDE
+% surface density
+PDE_s=750;  % [molecole/(\mu m)^2]
+% volumic density
+PDE=PDE_s/(1/2*nu*epsilon_0); % [molecole/(\mu m)^3]
+
+
+% COEFFICIENTI DI DIFFUSIONE NEL CITOSOL
+% CITOSOL DIFFUSION COEFFICIENTS
+
+% capacità volumica del cGMP
+% volumic cGMP capacity
+cc_u=1; % []
+
+% coefficiente di diffusione volumico del cGMP 
+% volumic cGMP diffusion coefficient
+% kk_u=160;%(50+196)/2;%100;  % [(\mu m)^2/s] 
+kk_u=120;%(50+196)/2;%100;  % [(\mu m)^2/s] 
+
+% capacità volumica del Ca2+
+% volumic Ca2+ capacity
+cc_v=1; % []
+
+% coefficiente di diffusione volumico del Ca2+ 
+% volumic Ca2+ diffusion coefficient
+kk_v=15;  % [(\mu m)^2/s] 
+
+
+% DATI SULL'ATTIVITA' CATALITICA DELLA E* (TASSO DI IDROLISI DI cGMP)
+% DATA ON CATALYTIC ACTIVITY OF E* (HYDROLYSIS RATE RATE OF cGMP)
+
+% Tasso di idrolisi del cGMP da parte della PDE attiva al buio (spenta)
+% nota: si riferisce alla molecola di PDE (2 subunità)
+% rate of hydrolysis of cGMP by dark-activated PDE
+% note: this refers to the whole PDE molecule (2 subunits)
+% k_hyd=7e-5;  % [(\mu m)^3/(molecole s)]
+Beta_dark=2.9; % [s^{-1}]
+k_hyd=1/2*nu*epsilon_0*Beta_dark/PDE_s;  % [(\mu m)^3/(molecole s)]
+
+% % attivazione della PDE spenta = k_hyd*[PDE]_s = flusso
+% gamma_0= k_hyd*PDE_s;  %  [\mu m s^(-1)]
+
+% Costante di idrolisi del cGMP da parte della PDE attivata
+% nota: si riferisce alla singola subunità
+% rate of hydrolysis of cGMP by light-activated PDE
+% note: this refers at each subunit
+k_st=0.9; % [(\mu m)^3/molecole s]
+
+
+% DATI SULLA CICLASI (TASSO DI PRODUZIONE DI cGMP)
+% DATA ON CYCLASE (PRODUCTION RATE OF cGMP)
+ 
+% Tasso massimo di sintesi di cGMP
+% maximum rate of production of cGMP
+% alpha_max=50; % [\mu M s^{-1}]
+alpha_max=76.5; % [\mu M s^{-1}]
+
+% Tasso minimo di sintesi di cGMP
+% minumum rate of production of cGMP
+% alpha_min=0.02*alpha_max; % [\mu M s^{-1}]
+alpha_min=5.5; % [\mu M s^{-1}]
+
+% Esponente di Hill
+% Hill coefficient
+% m_cyc=2; % []
+m_cyc=2.3; % []
+
+% Concentrazione di calcio corrispondente alla metà del tasso massimo di attivazione
+% half-maximum-activation concentration
+% k_cyc=0.135; % [\mu M]
+k_cyc=0.1; % [\mu M]
+
+% gamma_1=(alpha_max-alpha_min)*k_cyc^m_cyc*(1/2*nu*epsilon_0); 
+% 
+% beta_1=k_cyc; % [\mu M]
+% 
+% m=m_cyc;
+% 
+% cf1=alpha_min*(1/2*nu*epsilon_0); % [\mu M \mu m s^{-1}]
+
+
+% DATI COMUNI AI CANALI DEL CALCIO
+% COMMON DATA ON CALCIUM CHANNELS
+
+% Buffer del Ca2+, assunto costante
+% buffer of Ca2+, here assumed to be constant
+B_ca=20; % []
+
+% Costante di Faraday
+% Faraday constant
+F=96500/1e21; % [C / (\mu M (\mu m)^3)]
+
+
+% DATI SUL CANALE cGMP-OPERATO
+% DATA ON THE cGMP-OPERATED CHANNEL
+
+% Corrente di scambio massima
+% maximum exchange current
+% j_cg_max=7000e-12; % [A]
+j_cg_max=3550e-12; % [A]
+
+% Frazione di corrente attivata dal c_GMP costituita da ioni Ca2+
+% fraction of cGMP-activated current given by Ca2+
+% f_ca=0.17; % []
+f_ca=0.06; % []
+
+% Esponente di Hill
+% Hill coefficient
+% m_cg=2.5; % []
+m_cg=2.8; % []
+
+% Concentrazione di cGMP alla metà dell'apertura dei canali
+% Half-maximum-activation concentration
+% % % % here assumed to be constant
+% % % K_cg=20;%32; % [\mu M]
+% questa costante dipenda dalla concentrazione di Ca2+, secondo:
+% here assumed to depend on Ca2+, according to:
+% eq. (A11) of NLP, J.Gen.Physiol. 116 (2000) 795--824
+% K_cg_max=32; % [\mu M]
+% K_cg_min=13; % [\mu M]
+% to keep K_cg constant, as it was in the old code
+K_cg_max=20; % [\mu M] % coostante
+K_cg_min=20; % [\mu M] % costante
+n_CaM=2;
+K_CaM=60e-3; % [\mu M]
+
+% c_2=j_cg_max*f_ca/(Sigma_rod*B_ca*F*2); % [\mu M \mu m s^{-1}]
+% 
+% d_2=K_cg;
+% 
+% k=m_cg;
+% 
+
+
+% DATI SULLO SCAMBIATORE
+% DATA ON Ca2+ EXCHANGER
+
+% Corrente di scambio alla saturazione
+% exchange current at saturation
+% j_ex_sat=17e-12; % [A]
+j_ex_sat=1.8e-12; % [A]
+
+% Concentrazione di calcio alla metà dell'apertura dei canali
+% half-maximum-activation concentration
+% K_ex=1.5; %[\mu M]
+K_ex=1.6; %[\mu M]
+
+% c_1=j_ex_sat/(Sigma_rod*B_ca*F); % [\mu M \mu m s^{-1}]
+% 
+% d_1=K_ex; % [\mu M]
+
+
+% DATI SULL'ILLUMINAZIONE DI BACKGROUND E SUL FLASH AGGIUNTIVO
+% DATA ON BACKGROUND INTENSITY AND SUPERIMPOSED FLASH
+
+% illuminazione di background [fotoisomerizzazioni/s], prima dell'inizio
+% dell'esperimento, uniformemente spalmate sui dischi
+% il rod si assume adattato a tale background (steady-state: ss)
+% non può essere esattamente zero, ma lo stato dark si recupera prendendo 
+% I_bkgr_ss piccolissimo (es: 1e-8)
+% background illumination [photoisomerizations/s], before the beginning 
+% of the experiment, uniformly distributed on discs
+% the rod is assumed to be adapted to such a background (steady-state: ss)
+% it cannot be exactly zero, but the dark state can be recovered by taking
+% I_bkgr_ss very small (e.g., 1e-8)
+I_bkgr_ss=0; % [photoisomerizations/s]
+% I_bkgr_ss=50; % [photoisomerizations/s]
+
+% storia dell'illuminazione di background [fotoisomerizzazioni/s], 
+% a partire da tempo t=0 per tutta la durata della simulazione
+% ha lo stesso significato spiegato sopra (cfr. I_bkgr_ss)
+% esperimento di adattamento alla luce: I_bkgr_ss=0, I_bkgr_history=cost>0
+% esperimento di adattamento al buio: I_bkgr_ss_s=luce, I_bkgr_history=0
+% history of the background illumination  [photoisomerizations/s], 
+% starting from t=0 and for the time span of the simulation
+% its meaning is the same as I_bkgr_ss
+% if you wish to study the adaptation from dark to steady illumination,
+% take I_bkgr_ss=0 and I_bkgr_history constant to the final illumination;
+% if you wish to study the adaptation from steady illumination to dark,
+% take I_bkgr_ss=the initial steady illumination and I_bkgr_history equal to zero;
+I_bkgr_history=zeros(1,n_step_t+1); % [photoisomerizations/s]
+% bkg=round([n_step_t*0.05, n_step_t*0.4]);
+% I_bkgr_history(bkg(1):bkg(2))=500; % [photoisomerizations/s]
+% I_bkgr_history_s=50*(1+cos((0:n_step_t)/n_step_t*pi)); % [photoisomerizations/s]
+% I_bkgr_history=500*ones(1,n_step_t+1); % [photoisomerizations/s]
+
+% flash: Phi_flash_history(n) è il numero di fotoisomerizzazioni prodotte
+% all'istante (n-1)*t_fin/n_step_t, per n=1..n_step_t+1,
+% uniformemente spalmate in (0,H)
+% flashes: Phi_flash_history(n) is the number of photoisomerizations delivered 
+% at time (n-1)*t_fin/n_step_t, for n=1..n_step_t+1 
+% it is uniformly distributed on the interval (0,H)
+Phi_flash_history=zeros(1,n_step_t+1); % [photoisomerizations]
+% fl=round([n_step_t*0.02,n_step_t*0.5,n_step_t*0.6,n_step_t*0.7,n_step_t*0.8]);
+% Phi_flash_history(fl)=200;
+% Phi_flash_history(201)=200;
+fl=round(1+[n_step_t*0.0,n_step_t*0.1,n_step_t*0.2,n_step_t*0.3,n_step_t*0.4,n_step_t*0.5,n_step_t*0.6,n_step_t*0.7,n_step_t*0.8,n_step_t*0.9]);
+Phi_flash_history(fl)=logspace(0.01,3,10);
+
+return
